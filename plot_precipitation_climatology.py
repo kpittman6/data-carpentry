@@ -1,4 +1,5 @@
 import argparse
+
 import xarray as xr
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
@@ -32,11 +33,13 @@ def create_plot(clim, model, season, gridlines=False):
       gridlines (bool): Select whether to plot gridlines    
     
     """
-        
+    if not levels:
+        levels = np.arange(0, 13.5, 1.5)
+
     fig = plt.figure(figsize=[12,5])
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=180))
     clim.sel(season=season).plot.contourf(ax=ax,
-                                          levels=np.arange(0, 13.5, 1.5),
+                                          levels=levels,
                                           extend='max',
                                           transform=ccrs.PlateCarree(),
                                           cbar_kwargs={'label': clim.units},
@@ -57,7 +60,7 @@ def main(inargs):
     clim = dset['pr'].groupby('time.season').mean('time', keep_attrs=True)
     clim = convert_pr_units(clim)
 
-    create_plot(clim, dset.attrs['source_id'], inargs.season)
+    create_plot(clim, dset.attrs['source_id'], inargs.season, gridlines=inargs.gridlines, levels=inargs.cbar_levels)
     plt.savefig(inargs.output_file, dpi=200)
 
 
@@ -68,6 +71,9 @@ if __name__ == '__main__':
     parser.add_argument("pr_file", type=str, help="Precipitation data file")
     parser.add_argument("season", type=str, help="Season to plot")
     parser.add_argument("output_file", type=str, help="Output file name")
+    
+    parser.add_argument("--gridlines", action="store_true", default=False, help="Include gridlines on the plot")
+    parser.add_argument("--cbar_levels", type=float, nargs='*', default=None, help='list of levels / tick marks to appear on the colorbar')
 
     args = parser.parse_args()
     
