@@ -33,7 +33,9 @@ def apply_mask(darray, sftlf_file, realm):
     """
   
     dset = xr.open_dataset(sftlf_file)
-    pdb.set_trace()  
+    
+    assert realm in ['land', 'ocean'], """Valid realms are 'land' or 'ocean'"""
+
     if realm == 'land':
         masked_darray = darray.where(dset['sftlf'].data < 50)
     else:
