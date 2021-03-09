@@ -7,6 +7,7 @@ import numpy as np
 import cmocean
 
 import pdb
+import cmdline_provenance as cmdprov
 
 def convert_pr_units(darray):
     """Convert kg m-2 s-1 to mm day-1.
@@ -77,6 +78,29 @@ def create_plot(clim, model, season, gridlines=False, levels=None):
     title = f'{model} precipitation climatology ({season})'
     plt.title(title)
 
+def get_log_and_key(pr_file, history_attr, plot_type):
+   """Get key and command line log for image metadata.
+  
+   Different image formats allow different metadata keys.
+  
+   Args:
+     pr_file (str): Input precipitation file
+     history_attr (str): History attribute from pr_file
+     plot_type (str): File format for output image
+  
+   """
+   
+   valid_keys = {'png': 'History',
+                 'pdf': 'Title',
+                 'eps': 'Creator',
+                 'ps' : 'Creator'}    
+
+   assert plot_type in valid_keys.keys(), f"Image format not one of: {*[*valid_keys],}"
+   log_key = valid_keys[plot_type]
+   new_log = cmdprov.new_log(infile_history={pr_file: history_attr})
+   new_log = new_log.replace('\n', ' END ')
+   
+   return log_key, new_log
 
 def main(inargs):
     """Run the program."""
@@ -92,8 +116,13 @@ def main(inargs):
 
     create_plot(clim, dset.attrs['source_id'], inargs.season,
                 gridlines=inargs.gridlines, levels=inargs.cbar_levels)
-    plt.savefig(inargs.output_file, dpi=200)
 
+    image_format = inargs.output_file.split('.')[-1]
+    assert image_format == 'png', 'Only valid image format is .png'
+    new_log = cmdprov.new_log(infile_history={inargs.pr_file: dset.attrs['history']})
+    new_log = new_log.replace('\n', ' END ')
+    plt.savefig(inargs.output_file, metadata={'History': new_log}, dpi=200)
+    
 
 if __name__ == '__main__':
     description='Plot the precipitation climatology for a given season.'
@@ -111,7 +140,7 @@ if __name__ == '__main__':
                         metavar=('SFTLF_FILE', 'REALM'), default=None,
                         help="""Provide sftlf file and realm to mask ('land' or 'ocean')""")
 
-    args = parser.parse_args()
-  
+    args = parser.parse_args() 
+
     main(args)
-    
+
